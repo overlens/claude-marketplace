@@ -1,0 +1,14 @@
+{
+  "name": "overlens",
+  "owner": {
+    "name": "Overlens"
+  },
+  "description": "Overlens plugin marketplace for Claude Code",
+  "plugins": [
+    {
+      "name": "idp-integration",
+      "source": "./plugins/idp-integration",
+      "description": "Integrate any app with the Overlens Identity Provider (SSO): guided onboarding, framework-specific auth skills and embedded integration docs."
+    }
+  ]
+}
