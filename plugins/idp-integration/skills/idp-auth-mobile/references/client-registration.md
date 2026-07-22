@@ -1,0 +1,5 @@
+# Client registration — mobile / public client (stub)
+
+A mobile/backend-less-SPA client is registered with `isPublic: true` — the IDP stores no secret and the creation response has `"clientSecret": null`; security is PKCE S256 only. `redirectUris` holds your **deep link** (e.g. `overlens://callback`) — deep links are allowed **only** for public clients and matched byte-for-byte (for browser dev you may also register `http://localhost:<port>/callback`). Register your post-logout deep link (e.g. `overlens://logged-out`) in `postLogoutRedirectUris`, or `GET /auth/logout` will never return to the app. The same scheme must also be registered in the OS (Expo `scheme` / iOS `CFBundleURLSchemes` / Android `<intent-filter>`) — the IDP registration alone is not enough. If refresh calls return `400 unauthorized_client`, ask for `"refresh_token"` to be added to `allowedGrantTypes`.
+
+Full guide — payloads, validation rules, admin API, and the non-admin "registration request" mode: use the `idp-register-oauth-client` skill. Canonical: `../../../references/docs/integration/oauth-clients.md` §3 + §6 case B.

@@ -1,0 +1,76 @@
+{
+  "$comment": "Contrato PÚBLICO do IDP Overlens, legível por máquina (RFC-0005 / T11). Fonte de verdade dos campos: @overlens/idp-token-core (claims) + DiscoveryService + JwksService + OAuthErrorHintFilter + cookie-options. Mudou? Atualize ESTE arquivo + CONTRACT-CHANGELOG.md (o contract test idp-contract.e2e-spec.ts falha de propósito até isso). Remover/renomear/trocar tipo de algo aqui é breaking; adicionar é aditivo.",
+  "version": "1.7.0",
+  "updatedAt": "2026-07-20",
+  "jwt": {
+    "alg": "RS256",
+    "headerRequires": ["alg", "kid"],
+    "userClaims": ["sub", "email", "name", "role", "email_verified", "iss", "aud", "iat", "exp"],
+    "userOptionalClaims": ["new_user"],
+    "m2mClaims": ["sub", "client_id", "scope", "iss", "aud", "iat", "exp"],
+    "audIsArray": true,
+    "deprecatedClaims": ["role"]
+  },
+  "discovery": {
+    "endpoints": [
+      "issuer",
+      "authorization_endpoint",
+      "token_endpoint",
+      "jwks_uri",
+      "userinfo_endpoint",
+      "end_session_endpoint",
+      "revocation_endpoint"
+    ],
+    "response_types_supported": ["code"],
+    "grant_types_supported": ["authorization_code", "refresh_token", "client_credentials"],
+    "subject_types_supported": ["public"],
+    "id_token_signing_alg_values_supported": ["RS256"],
+    "token_endpoint_auth_methods_supported": [
+      "client_secret_basic",
+      "client_secret_post",
+      "none"
+    ],
+    "revocation_endpoint_auth_methods_supported": [
+      "client_secret_basic",
+      "client_secret_post",
+      "none"
+    ],
+    "scopes_supported": ["openid", "profile", "email"],
+    "claims_supported": ["sub", "email", "name", "email_verified", "iss", "aud", "iat", "exp"],
+    "code_challenge_methods_supported": ["S256"]
+  },
+  "jwks": {
+    "keyShape": ["kty", "use", "alg", "n", "e", "kid"]
+  },
+  "errors": {
+    "shape": ["error", "error_description", "error_hint"],
+    "codes": [
+      "invalid_client",
+      "invalid_redirect_uri",
+      "invalid_grant",
+      "unauthorized_client",
+      "unsupported_grant_type",
+      "invalid_scope",
+      "insufficient_scope",
+      "invalid_token",
+      "invalid_request",
+      "invalid_credentials"
+    ]
+  },
+  "cookies": {
+    "access_token": {
+      "sameSite": "lax",
+      "httpOnly": true,
+      "secure": true,
+      "path": "/",
+      "maxAge": 900000
+    },
+    "refresh_token": {
+      "sameSite": "lax",
+      "httpOnly": true,
+      "secure": true,
+      "path": "/token/refresh",
+      "maxAge": 2592000000
+    }
+  }
+}
