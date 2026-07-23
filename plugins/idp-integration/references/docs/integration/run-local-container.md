@@ -10,7 +10,7 @@
 >
 > Não confundir com:
 > - **Mock in-process** ([`@overlens/idp-testing/mock-idp`](https://github.com/overlens/identity-provider/blob/main/packages/idp-testing/src/mock-idp/README.md)) — peso-pena, sem Docker, para a maioria dos testes de client.
-> - **Sandbox dedicada** (`idp-test.overlens.com.br`, T9) — sempre no ar quando provisionada (runbook aprovado — RFC-0006 D1; provisionamento pendente), para dev casual. Ver [`../deploy/idp-test-sandbox.md`](../deploy/idp-test-sandbox.md).
+> - **Sandbox dedicada** (`idp-test.overlens.com.br`, T9) — sempre no ar, para dev casual sem Docker nem clone. Ver [`../deploy/idp-test-sandbox.md`](../deploy/idp-test-sandbox.md).
 >
 > **Última atualização:** 2026-07-18
 

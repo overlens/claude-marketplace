@@ -1,7 +1,12 @@
 # Deploy da Sandbox de Teste do IDP (RFC-0005 / T9)
 
 > **Público:** time de DevOps.
-> **Status (2026-07-22): Runbook aprovado (RFC-0006 D1) — provisionamento a executar.**
+> **Status (2026-07-23): NO AR** — provisionada e validada (WS0.10: fluxo headless
+> `/test/login` → exchange → token RS256 com kid de teste; `idp-doctor` 6/6 PASS).
+> ⚠️ Nota de config atual: `IDP_AUDIENCE` está como
+> `https://events.overlens.com.br,https://api.events.overlens.com.br` (aparenta env
+> copiada do Events) — o runbook sugere um valor neutro (`https://api-test.overlens.com.br`);
+> decidir e alinhar (integradores que validam `aud` precisam usar o valor vigente).
 > **Histórico do naming:** o domínio originalmente proposto, `idp.dev` (dois níveis
 > de subdomínio), foi **abandonado** — dois níveis quebram o certificado universal
 > da Cloudflare. A sandbox é uma implantação **nova e dedicada** em
@@ -112,8 +117,14 @@ O `CMD` padrão do `Dockerfile` só faz `migrate deploy && node dist/main` — a
 sandbox precisa **também seedar**. Configure o start command do serviço para:
 
 ```sh
-cd apps/idp && pnpm prisma migrate deploy && pnpm db:seed:ci && node dist/main
+sh -c "cd apps/idp && pnpm prisma migrate deploy && pnpm db:seed:ci && node dist/main"
 ```
+
+> ⚠️ O wrapper `sh -c "..."` é obrigatório: o Custom Start Command do Railway em
+> deploys via Dockerfile executa em **exec form (sem shell)** — sem o wrapper,
+> `cd` falha com "The executable `cd` could not be found" (`cd` é builtin de
+> shell, não executável; verificado em 2026-07-23). O `CMD` do Dockerfile não
+> sofre disso porque a shell-form já embute `/bin/sh -c`.
 
 > `db:seed:ci` roda `tsx prisma/seed.ts` sem Infisical. Com `IDP_TEST_MODE=true`,
 > ele semeia o usuário root **e** as fixtures (3 clients + 6 usuários de teste de

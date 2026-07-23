@@ -89,7 +89,7 @@ Cinco famílias de artefato. Os detalhes de uso de cada um estão na
 |---|---|---|
 | **Skills** (`.claude/skills/idp-*`) | guias acionáveis que o Claude Code dispara sozinho | sempre — é como o agente sabe integrar e testar |
 | **Toolkit `@overlens/idp-testing`** | cunhagem de tokens, mock JWKS, casos negativos, **kit de conformidade** (RS + client), mock IDP, fixtures, container helper, doctor | movimento 2 (verificar) — o agente instala e dropa nos testes |
-| **Ambientes** | IDP real **containerizado** (efêmero) + **sandbox dedicada** (`idp-test.overlens.com.br` — runbook aprovado, provisionamento pendente) | quando precisa de um IDP de verdade (e2e/dev sem clonar) |
+| **Ambientes** | IDP real **containerizado** (efêmero) + **sandbox dedicada** (`idp-test.overlens.com.br` — no ar) | quando precisa de um IDP de verdade (e2e/dev sem clonar) |
 | **Doctor** (`idp-doctor`) | preflight client-side (issuer/jwks/kid/aud/clock) | movimento 3 — antes de apontar para um ambiente real |
 | **Verdade machine-readable** | discovery OIDC, **OpenAPI** (`/docs-json`), erros com `error_hint`, **contrato versionado** | anti-alucinação — o agente lê a verdade em vez de inventar |
 
@@ -105,7 +105,7 @@ clock injetável, fixtures conhecidas, zero rede). Escolha o peso pela audiênci
 | **Leve** | toolkit + `runResourceServerConformance` | Resource Server (só valida JWT) | não — in-process |
 | **Médio** | mock IDP + `runClientConformance` | client/BFF (inicia login) | não — mock in-process |
 | **Pesado** | container (`docker-compose.test.yml`) ou `startIdpContainer()` | e2e contra o IDP **real** + Postgres | sim — efêmero |
-| **Zero-setup** | sandbox `idp-test.overlens.com.br` (a provisionar) | dev casual, sem Docker nem clone | sim — hospedado |
+| **Zero-setup** | sandbox `idp-test.overlens.com.br` | dev casual, sem Docker nem clone | sim — hospedado |
 
 Regra prática: **conformance kit** resolve 90% (rápido, sem Docker). O **container**
 é para o e2e de ponta a ponta; a **sandbox** é para dev casual. Um token de
@@ -133,7 +133,7 @@ Aponte o Claude Code para estas fontes quando ele precisar da verdade do contrat
   Packages da Overlens) — isso é um passo de publicação ainda **pendente** no lado
   do IDP. Enquanto não publicado: as verificações via toolkit/mock/conformance
   valem **dentro do monorepo**; para repositórios externos use o **container**
-  (a imagem/compose vivem neste repo), o **doctor** e — quando provisionada — a
+  (a imagem/compose vivem neste repo), o **doctor** e a
   **sandbox dedicada** (`idp-test.overlens.com.br`; status honesto: runbook
   aprovado, **aguardando provisionamento** — RFC-0006 D1).
 - **Container/e2e real:** exige **Docker**. O e2e de demonstração é pulado por
