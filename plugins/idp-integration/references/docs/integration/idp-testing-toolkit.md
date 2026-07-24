@@ -210,9 +210,22 @@ Pega o clássico drift de `IDP_ISSUER` sandbox→prod **antes** do deploy.
 
 ### CLI `idp-doctor`
 
+O binário vem **junto do pacote** (`bin` de `@overlens/idp-testing`) — com o pacote
+instalado, `npx idp-doctor` resolve localmente. Para rodar **sem instalar nada**
+(one-shot), aponte o pacote explicitamente:
+
+```bash
+npx -p @overlens/idp-testing idp-doctor --issuer https://idp-test.overlens.com.br
+# (pnpm dlx -p @overlens/idp-testing idp-doctor ... também funciona)
+```
+
+> ⚠️ Não rode `npx idp-doctor` "pelado" num diretório SEM o pacote instalado: o npx
+> buscaria um pacote *chamado* `idp-doctor` no registry — que não é nosso (nome
+> não-escopado, sujeito a typosquatting).
+
 ```bash
 idp-doctor --issuer https://idp-test.overlens.com.br \
-  --audience https://api.example.com \
+  --audience https://api-test.overlens.com.br \
   --token "<access token>"          # opcional: habilita checagens de kid/aud/iss/clock
   # --clock-tolerance <seg>   --json
 ```

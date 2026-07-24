@@ -3,10 +3,9 @@
 > **Público:** time de DevOps.
 > **Status (2026-07-23): NO AR** — provisionada e validada (WS0.10: fluxo headless
 > `/test/login` → exchange → token RS256 com kid de teste; `idp-doctor` 6/6 PASS).
-> ⚠️ Nota de config atual: `IDP_AUDIENCE` está como
-> `https://events.overlens.com.br,https://api.events.overlens.com.br` (aparenta env
-> copiada do Events) — o runbook sugere um valor neutro (`https://api-test.overlens.com.br`);
-> decidir e alinhar (integradores que validam `aud` precisam usar o valor vigente).
+> `IDP_AUDIENCE` alinhado em 2026-07-23: os tokens da sandbox saem com
+> `aud: ["https://api-test.overlens.com.br"]` — é este o valor que integradores que
+> validam audience devem usar contra a sandbox (verificado por token real).
 > **Histórico do naming:** o domínio originalmente proposto, `idp.dev` (dois níveis
 > de subdomínio), foi **abandonado** — dois níveis quebram o certificado universal
 > da Cloudflare. A sandbox é uma implantação **nova e dedicada** em
