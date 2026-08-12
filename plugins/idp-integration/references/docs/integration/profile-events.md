@@ -4,7 +4,7 @@
 > backend do seu client invalidar o cache e **re-puxar** a verdade — sem baixar o TTL
 > do Pull nem colocar o IDP no hot path.
 >
-> **Use este guia quando:** você cacheia atributos globais (`name`, `username`, `avatar`,
+> **Use este guia quando:** você cacheia atributos globais (`name`, `username`, `avatar`, `document`,
 > `phone`, `birthDate`) lidos via [`GET /users/:sub`](./m2m-profile-read.md) e quer que
 > uma edição no IDP apareça no seu app **em segundos**, não em até 5 min.
 >
@@ -67,7 +67,9 @@ Pré-requisitos:
   "events": {
     "https://schemas.overlens.com.br/events/profile-updated": {
       "version": 1751990400000,                             // monotônico por sub
-      "changed": ["avatar", "name"],                         // hint (ausente em lifecycle)
+      "changed": ["avatar", "name"],                         // hint (ausente em lifecycle);
+                                                              // vocabulário: name, username, phone,
+                                                              // document, birthDate, avatar, emailVerified
       "occurred_at": 1751990400
     }
   }

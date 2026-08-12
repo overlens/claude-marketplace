@@ -4,7 +4,7 @@
 >
 > **Última atualização:** 2026-07-18
 
-> **O IDP é a autoridade de perfil global (RFC-0001 / ADR-7).** Os atributos `name`, `username`, `phone`, `birthDate` e `avatar` descrevem *a mesma pessoa em qualquer app* e têm o IDP como fonte de verdade — nenhum app deve mantê-los como cópia autoritativa. Eles **não viajam no JWT**; são lidos aqui (perfil próprio) ou, para backends, via `GET /users/:sub` (M2M — **implementado**, ver [`m2m-profile-read.md`](./m2m-profile-read.md)). Papel/`role`, tema, título e progresso permanecem **contextuais de cada app**.
+> **O IDP é a autoridade de perfil global (RFC-0001 / ADR-7).** Os atributos `name`, `username`, `phone`, `document`, `birthDate` e `avatar` descrevem *a mesma pessoa em qualquer app* e têm o IDP como fonte de verdade — nenhum app deve mantê-los como cópia autoritativa. Eles **não viajam no JWT**; são lidos aqui (perfil próprio) ou, para backends, via `GET /users/:sub` (M2M — **implementado**, ver [`m2m-profile-read.md`](./m2m-profile-read.md)). Papel/`role`, tema, título e progresso permanecem **contextuais de cada app**.
 
 ---
 
@@ -48,6 +48,7 @@ Retorna o perfil do usuário autenticado. **PII é mascarada** — use `GET /aut
   "maskedEmail": "f*****@gmail.com",
   "maskedPhone": "+** ** *****-4321",
   "birthDate": "1995-08-01",
+  "maskedDocument": "********725",
   "authProvider": "LOCAL",
   "emailVerified": true,
   "hasPassword": true,
@@ -67,6 +68,7 @@ Retorna o perfil do usuário autenticado. **PII é mascarada** — use `GET /aut
 | `maskedEmail` | `"r*****@dominio.com"` — primeira letra + asteriscos |
 | `maskedPhone` | `"+** ** *****-4321"` — últimos 4 dígitos visíveis; `null` se não tiver |
 | `birthDate` | `YYYY-MM-DD` ou `null` |
+| `maskedDocument` | CPF mascarado (últimos 3 dígitos) ou `null`. O valor cru sai só no `GET /users/:sub` |
 | `authProvider` | `LOCAL` (signup com senha) ou `GOOGLE` (signup via Google) |
 | `emailVerified` | `false` para signups novos via senha |
 | `hasPassword` | `true` se tem senha local — `false` em contas só-Google |
@@ -107,7 +109,8 @@ Atualiza campos editáveis. Todos os campos do body são opcionais; campos não 
 {
   "name": "Fulana B. Souza",
   "username": "fulana_souza",
-  "birthDate": "1995-08-01"
+  "birthDate": "1995-08-01",
+  "document": "529.982.247-25"
 }
 ```
 
@@ -116,6 +119,7 @@ Atualiza campos editáveis. Todos os campos do body são opcionais; campos não 
 | `name` | string 1-100 chars, trim aplicado |
 | `username` | regex `^[a-zA-Z0-9_]{3,30}$` (lowercased server-side antes de persistir) |
 | `birthDate` | `"YYYY-MM-DD"` ou `null` para limpar. Ano ≥ 1900, não pode ser futuro. |
+| `document` | CPF com ou sem máscara, ou `null` para limpar. Persistido só com os dígitos; dígitos verificadores validados no servidor (`400 CPF inválido`). |
 
 Pelo menos **um** campo precisa estar presente — `{}` retorna `400 Nenhum campo a atualizar`.
 

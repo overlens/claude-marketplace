@@ -27,7 +27,7 @@ This skill walks a developer through wiring **OAuth 2.0 `client_credentials`** b
 
 > **Canonical docs:** `../../references/docs/integration/m2m.md` (full guide), `../../references/docs/integration/oauth-clients.md` §6-C (registration), `../../references/docs/integration/backend.md` §3 (user-vs-M2M discrimination). This skill curates those plus copy-paste templates.
 
-> **Reading a user's global profile?** If your M2M service needs the global identity attributes (`name`, `username`, `email`, `phone`, `birthDate`, `avatar`) of a user by `sub` — which do **not** travel in the JWT — call `GET /users/:sub` with the `profile:read` scope. See `../../references/docs/integration/m2m-profile-read.md` (RFC-0002). Same `client_credentials` flow as this skill; just request the `profile:read` scope and grant it in the client's `allowedScopes`.
+> **Reading a user's global profile?** If your M2M service needs the global identity attributes (`name`, `username`, `email`, `phone`, `document`, `birthDate`, `avatar`) of a user by `sub` — which do **not** travel in the JWT — call `GET /users/:sub` with the `profile:read` scope. See `../../references/docs/integration/m2m-profile-read.md` (RFC-0002). Same `client_credentials` flow as this skill; just request the `profile:read` scope and grant it in the client's `allowedScopes`.
 
 ---
 
@@ -205,7 +205,7 @@ For any other language, port the same shape: build Basic header → POST form-en
 
 > **Status: proposed, not yet implemented.** Don't wire this up yet — there is no live endpoint. Documented here so you design your M2M client with it in mind.
 
-The IDP is the **authority of the user's global profile** — `name`, `username`, `phone`, `birthDate`, `avatar` (RFC-0001 / ADR-7). These attributes **do not travel in the JWT** (they'd bloat a token sent on every request). The canonical way for a backend to read them by `sub` will be an M2M call — the exact `client_credentials` flow this skill already covers:
+The IDP is the **authority of the user's global profile** — `name`, `username`, `phone`, `document`, `birthDate`, `avatar` (RFC-0001 / ADR-7). These attributes **do not travel in the JWT** (they'd bloat a token sent on every request). The canonical way for a backend to read them by `sub` will be an M2M call — the exact `client_credentials` flow this skill already covers:
 
 ```
 GET https://idp.overlens.com.br/users/:sub

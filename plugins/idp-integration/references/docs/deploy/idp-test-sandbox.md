@@ -125,9 +125,16 @@ sh -c "cd apps/idp && pnpm prisma migrate deploy && pnpm db:seed:ci && node dist
 > shell, não executável; verificado em 2026-07-23). O `CMD` do Dockerfile não
 > sofre disso porque a shell-form já embute `/bin/sh -c`.
 
-> `db:seed:ci` roda `tsx prisma/seed.ts` sem Infisical. Com `IDP_TEST_MODE=true`,
+> `db:seed:ci` roda `tsx prisma/seed.ts` sem Infisical. Com `IDP_SEED_FIXTURES=true`,
 > ele semeia o usuário root **e** as fixtures (3 clients + 6 usuários de teste de
 > T3). O seed é **idempotente** (upsert) — seguro rodar a cada deploy.
+>
+> ⚠️ **O start command re-semeia a cada deploy/restart.** Isso é benigno enquanto
+> a `DATABASE_URL` for a do banco isolado da sandbox — e catastrófico se apontar
+> para outro ambiente: as fixtures têm senha pública. O seed tem um guard que
+> recusa gravar num banco que hospede implantação real (clients fora do manifesto
+> com redirect URI pública), mas ele é a **última** linha de defesa, não a
+> primeira: confira a `DATABASE_URL` deste serviço antes de qualquer deploy.
 
 ### 3. Variáveis de ambiente da sandbox
 
@@ -135,8 +142,9 @@ sh -c "cd apps/idp && pnpm prisma migrate deploy && pnpm db:seed:ci && node dist
 |---|---|---|
 | `NODE_ENV` | `development` | **NÃO** `production` (senão o boot falha com `IDP_TEST_MODE=true`). |
 | `IDP_TEST_MODE` | `true` | Habilita `POST /test/login`. Ver modelo de segurança acima. |
+| `IDP_SEED_FIXTURES` | `true` | Autoriza o seed a gravar as fixtures (senha pública) no banco de `DATABASE_URL`. Opt-in separado do `IDP_TEST_MODE` de propósito. |
 | `PORT` | (injetado pelo Railway) | O IDP lê `PORT`. |
-| `DATABASE_URL` | conn string do Postgres **sandbox** | Isolado de produção e de dev. |
+| `DATABASE_URL` | conn string do Postgres **sandbox** | Isolado de produção e de dev. **Confira antes de cada deploy** — o start command semeia fixtures no banco que estiver aqui. |
 | `REDIS_URL` | `redis://…` | Recomendado. |
 | `RSA_PRIVATE_KEY` | base64 do keypair de **teste** | Público (T1). Ver `docker/test.env`. |
 | `RSA_KID` | `e9e594c8f37e68d4330fa55c2857f4401478ed1e922654e890b6cfb34877e3f5` | kid fixo do keypair de teste. |

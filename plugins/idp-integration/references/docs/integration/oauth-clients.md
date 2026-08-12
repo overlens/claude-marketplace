@@ -12,7 +12,7 @@
 |---|---|
 | **API admin (`POST /admin/clients`)** ← caminho primário | Qualquer registro/alteração em produção. Exige JWT de usuário com `role=ADMIN`. Tem audit log. |
 | UI admin (`accounts.overlens.com.br/admin/clients`) | Mesmo que a API, mas via interface. Implementada em cima de `POST /admin/clients` etc. |
-| Seed (`apps/idp/prisma/seed.ts`) | **Não semeia clients de produção.** Cria apenas o usuário root ADMIN (`ROOT_USER_EMAIL`/`ROOT_USER_PASSWORD`) e, somente com `IDP_TEST_MODE=true` (nunca em produção), os fixtures de teste (`test-web-bff`, `test-public-pkce`, `test-m2m-service`). Ver §8. |
+| Seed (`apps/idp/prisma/seed.ts`) | **Não semeia clients de produção.** Cria apenas o usuário root ADMIN (`ROOT_USER_EMAIL`/`ROOT_USER_PASSWORD`) e, somente com `IDP_SEED_FIXTURES=true` (nunca em produção), os fixtures de teste (`test-web-bff`, `test-public-pkce`, `test-m2m-service`). Ver §8. |
 
 > **Migration note:** versões anteriores deste guia mandavam editar `seed.ts` para registrar clients. Esse caminho **não existe mais** — o seed não semeia clients de produção. Todo registro/alteração é via API/UI admin, onde vivem audit log, soft-delete, disable/enable e as regras de validação.
 
@@ -345,7 +345,7 @@ O seed **não registra clients OAuth** — o bootstrap real é:
 
 3. **Cadastro dos clients** via UI (`accounts.overlens.com.br/admin/clients`) ou `POST /admin/clients` — com audit log, validações e o `client_secret` retornado uma única vez.
 
-> Com `IDP_TEST_MODE=true` (**nunca em produção** — o seed recusa rodar os fixtures com `NODE_ENV=production`), o seed também semeia os fixtures de teste: clients `test-web-bff`, `test-public-pkce`, `test-m2m-service` e usuários `*.example.test` — usados pelo container/sandbox ([`run-local-container.md`](./run-local-container.md)).
+> Com `IDP_SEED_FIXTURES=true` (**nunca em produção**), o seed também semeia os fixtures de teste: clients `test-web-bff`, `test-public-pkce`, `test-m2m-service` e usuários `*.example.test` — usados pelo container/sandbox ([`run-local-container.md`](./run-local-container.md)). O seed recusa em três situações: `NODE_ENV=production`, opt-in ausente, ou banco alvo que já hospeda uma implantação real (clients fora do manifesto com redirect URI pública — o guard de `DATABASE_URL` apontada para o ambiente errado).
 
 Para promover admins **adicionais** via SQL, ver [`admin-area.md`](./admin-area.md).
 

@@ -1,7 +1,7 @@
 {
   "name": "idp-integration",
   "description": "Integrate any app with the Overlens Identity Provider (OAuth 2.1 + OIDC SSO): guided onboarding wizard, framework-specific auth skills, conformance testing and embedded integration docs. Version mirrors the IDP public contract.",
-  "version": "1.7.0",
+  "version": "1.8.0",
   "author": {
     "name": "Overlens"
   },

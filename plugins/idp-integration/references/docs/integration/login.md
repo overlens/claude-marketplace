@@ -158,7 +158,7 @@ Clients OAuth de produção **não são semeados** — são cadastrados manualme
 | `events` | Events | Confidencial | `authorization_code`, `refresh_token` | `https://events.overlens.com.br/api/auth/callback`, `http://localhost:3001/api/auth/callback` |
 | `overlens-mobile` | Overlens App | Público | `authorization_code` | `overlens://callback` |
 
-Para desenvolvimento local (container/sandbox), existem os fixtures de teste `test-web-bff` (confidencial), `test-public-pkce` (público) e `test-m2m-service` (M2M), semeados **apenas** com `IDP_TEST_MODE=true` (nunca em produção) — ver [`run-local-container.md`](./run-local-container.md).
+Para desenvolvimento local (container/sandbox), existem os fixtures de teste `test-web-bff` (confidencial), `test-public-pkce` (público) e `test-m2m-service` (M2M), semeados **apenas** com `IDP_SEED_FIXTURES=true` (nunca em produção) — ver [`run-local-container.md`](./run-local-container.md).
 
 > O `POST /auth/token` rejeita grant types fora de `allowedGrantTypes` do client com `400 unauthorized_client`. Configure o client corretamente antes de integrar.
 

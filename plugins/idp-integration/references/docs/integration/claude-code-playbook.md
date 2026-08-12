@@ -138,9 +138,11 @@ Aponte o Claude Code para estas fontes quando ele precisar da verdade do contrat
   aprovado, **aguardando provisionamento** — RFC-0006 D1).
 - **Container/e2e real:** exige **Docker**. O e2e de demonstração é pulado por
   padrão; ligue com `IDP_CONTAINER_E2E=1`.
-- **`IDP_TEST_MODE` é só para teste:** o login headless `POST /test/login` e o
-  seed de fixtures só existem com `IDP_TEST_MODE=true` (container/sandbox) — **nunca**
-  em produção (o boot do IDP falha de propósito se `NODE_ENV=production` junto).
+- **`IDP_TEST_MODE` é só para teste:** o login headless `POST /test/login` só
+  existe com `IDP_TEST_MODE=true` (container/sandbox) — **nunca** em produção (o
+  boot do IDP falha de propósito se `NODE_ENV=production` junto). O seed de
+  fixtures tem opt-in próprio, `IDP_SEED_FIXTURES=true`, e recusa gravar num
+  banco que hospede implantação real.
 - **Tokens de teste são públicos:** keypair, segredos de fixtures e senhas são
   públicos por definição. Tokens da sandbox/container **não são confiáveis** por um
   Resource Server de produção (keypair e issuer diferentes).

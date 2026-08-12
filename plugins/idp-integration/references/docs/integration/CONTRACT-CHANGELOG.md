@@ -28,6 +28,55 @@ sem impacto de integração.
 
 ---
 
+## [1.8.0] — 2026-08-05
+
+**MINOR (aditivo)** — CPF no perfil global (RFC-0001). Um atributo novo,
+`document`, editável pelo dono e legível por backend confiável. **Nenhuma claim,
+entrada de discovery, shape de erro, JWKS ou cookie muda** — integrações
+existentes não precisam de nenhuma ação.
+
+### `PATCH /auth/me` aceita `document`
+
+```
+Request:  { "document": "529.982.247-25" | "52998224725" | null }
+Response: 200 (ProfileResponseDto)
+Errors:   400 formato fora de 11 dígitos (com ou sem máscara)
+          400 "CPF inválido" quando os dígitos verificadores não fecham
+```
+
+Aceita com ou sem máscara e persiste apenas os dígitos. `null` limpa o valor.
+A validação de dígito verificador é do servidor: um CPF bem formatado ainda pode
+ser inválido, e sequências repetidas (`11111111111`) são recusadas mesmo passando
+na conta dos verificadores.
+
+### `GET /auth/me` responde `maskedDocument`
+
+O perfil do próprio usuário **nunca** devolve o CPF cru, seguindo a mesma regra
+já aplicada a e-mail e telefone. `"52998224725"` sai como `"********725"`, e o
+campo é `null` quando não há documento cadastrado. Serve para a interface dizer
+"está cadastrado" sem trafegar o número.
+
+### `GET /users/:sub` (M2M, scope `profile:read`) inclui `document`
+
+Aqui o valor sai **cru**, como `email`, `phone` e `birthDate` já saem, porque o
+consumidor é um backend registrado com `client_secret`. Conceda `profile:read`
+apenas a serviços que precisam.
+
+### `profile-updated` aceita `document` no hint `changed`
+
+O vocabulário de `ProfileChangedField` ganha `'document'`. O payload do SET
+continua sem valores, apenas o hint, então nenhum dado pessoal viaja no fan-out.
+
+**`contract-version.json`:** o `version`/`updatedAt` sobem para 1.8.0, como nas
+entradas anteriores que também não acrescentaram claim nem endpoint (ver 1.6.0).
+Os blocos internos do arquivo (claims do JWT, discovery, JWKS, shapes de erro,
+cookies) **não mudam**, porque o payload do perfil não está entre eles: o
+`idp-contract.e2e-spec.ts` continua verde sem ajuste. O bump importa porque dois
+consumidores automatizados leem esse `version`: a tag da imagem de sandbox
+(`publish-idp-test-image.yml`) e a versão do plugin `idp-integration` (ADR-0013).
+
+---
+
 ## [1.7.0] — 2026-07-20
 
 **MINOR (aditivo)** — Recuperação de senha por token de uso único (ADR-0012).

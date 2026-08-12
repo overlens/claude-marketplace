@@ -32,6 +32,10 @@ fixtures T3** (clients + usuários de teste conhecidos), com:
   **byte-compatível** com um cunhado pelo toolkit (T2) ou pelo mock (T4).
 - **`IDP_TEST_MODE=true`** — habilita o login headless `POST /test/login` (T6),
   que emite um authorization code para um usuário semeado **sem UI nem senha**.
+- **`IDP_SEED_FIXTURES=true`** — autoriza o seed a gravar as fixtures no banco de
+  `DATABASE_URL` (aqui, o Postgres efêmero do compose). É um opt-in **separado**
+  do `IDP_TEST_MODE`: aceitar login headless e escrever usuários/clients com
+  senha pública são decisões diferentes.
 - **`NODE_ENV=test`** — obrigatório: o boot do IDP **falha de propósito** se
   `NODE_ENV=production` junto de `IDP_TEST_MODE=true`.
 

@@ -193,7 +193,7 @@ The access_token JWT contains these claims:
 **Key details:**
 - `sub` is the user's unique ID. Use it as the primary key for user data in your system. It's a CUID2 string, the same across all Overlens services.
 - `new_user` is **only present** (as literal `true`) on the first-ever login after registration. Use it to trigger onboarding flows. It's absent on all subsequent logins.
-- `role` is **`@deprecated` as an authorization source** (RFC-0003 / ADR-8). The IDP authenticates; **each app authorizes**. Don't gate access on the token's `role` — map `sub` → a role local to your own app. The claim is still emitted (no breaking change) and will be removed in a future major version. The profile attributes that describe the user globally (`username`, `phone`, `birthDate`, `avatar`) do **not** travel in the JWT — read them from the profile endpoints (RFC-0001 / RFC-0002).
+- `role` is **`@deprecated` as an authorization source** (RFC-0003 / ADR-8). The IDP authenticates; **each app authorizes**. Don't gate access on the token's `role` — map `sub` → a role local to your own app. The claim is still emitted (no breaking change) and will be removed in a future major version. The profile attributes that describe the user globally (`username`, `phone`, `document`, `birthDate`, `avatar`) do **not** travel in the JWT — read them from the profile endpoints (RFC-0001 / RFC-0002).
 
 ## Signup Flow
 

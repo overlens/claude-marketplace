@@ -1,7 +1,7 @@
 # Como implementar o webhook de atualização de dados do usuário (Overlens IDP)
 
 > **Público:** engenheiros de um app cliente (client) do ecossistema Overlens que **cacheiam**
-> atributos globais de identidade (`name`, `username`, `avatar`, `phone`, `birthDate`) e querem
+> atributos globais de identidade (`name`, `username`, `avatar`, `phone`, `document`, `birthDate`) e querem
 > que uma edição feita no IDP apareça no app **em segundos**, sem baixar o TTL do cache nem
 > bater no IDP a cada request.
 >

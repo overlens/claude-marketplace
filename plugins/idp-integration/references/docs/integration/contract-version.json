@@ -1,7 +1,7 @@
 {
   "$comment": "Contrato PÚBLICO do IDP Overlens, legível por máquina (RFC-0005 / T11). Fonte de verdade dos campos: @overlens/idp-token-core (claims) + DiscoveryService + JwksService + OAuthErrorHintFilter + cookie-options. Mudou? Atualize ESTE arquivo + CONTRACT-CHANGELOG.md (o contract test idp-contract.e2e-spec.ts falha de propósito até isso). Remover/renomear/trocar tipo de algo aqui é breaking; adicionar é aditivo.",
-  "version": "1.7.0",
-  "updatedAt": "2026-07-20",
+  "version": "1.8.0",
+  "updatedAt": "2026-08-05",
   "jwt": {
     "alg": "RS256",
     "headerRequires": ["alg", "kid"],

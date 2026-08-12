@@ -54,7 +54,7 @@ Clients M2M **não são semeados** — são cadastrados manualmente por um ADMIN
 
 O `client_secret` vem **uma única vez** na resposta da criação — guarde-o no secret manager do serviço consumidor.
 
-> Para desenvolvimento local (container/sandbox), o fixture de teste M2M é o `test-m2m-service`, semeado **apenas** com `IDP_TEST_MODE=true` — ver [`run-local-container.md`](./run-local-container.md).
+> Para desenvolvimento local (container/sandbox), o fixture de teste M2M é o `test-m2m-service`, semeado **apenas** com `IDP_SEED_FIXTURES=true` — ver [`run-local-container.md`](./run-local-container.md).
 
 ---
 
@@ -357,4 +357,4 @@ O endpoint `POST /auth/token` está sob o throttler `auth` (**30 req/min por IP*
 
 ## 12. Caso de uso: ler o perfil global de um usuário
 
-Precisa dos atributos globais de identidade (`name`, `username`, `email`, `phone`, `birthDate`, `avatar`) de **qualquer** usuário por `sub`? Use o endpoint M2M **`GET /users/:sub`** (scope `profile:read`). Ver guia dedicado: [`m2m-profile-read.md`](./m2m-profile-read.md).
+Precisa dos atributos globais de identidade (`name`, `username`, `email`, `phone`, `document`, `birthDate`, `avatar`) de **qualquer** usuário por `sub`? Use o endpoint M2M **`GET /users/:sub`** (scope `profile:read`). Ver guia dedicado: [`m2m-profile-read.md`](./m2m-profile-read.md).

@@ -21,7 +21,7 @@ O IDP **não renderiza HTML**. Telas são responsabilidade do Accounts.
 
 ## O IDP é a autoridade de perfil global
 
-Além de autenticar, o IDP é a **fonte de verdade dos atributos de identidade que descrevem a mesma pessoa em qualquer app**: `email`, `name`, `username`, `phone`, `birthDate` e `avatar` (RFC-0001 / ADR-7). O critério: vai para o IDP o que é global; fica no app o que só faz sentido dentro dele (tema, título, progresso, gamificação, e papel/`role`).
+Além de autenticar, o IDP é a **fonte de verdade dos atributos de identidade que descrevem a mesma pessoa em qualquer app**: `email`, `name`, `username`, `phone`, `document`, `birthDate` e `avatar` (RFC-0001 / ADR-7). O critério: vai para o IDP o que é global; fica no app o que só faz sentido dentro dele (tema, título, progresso, gamificação, e papel/`role`).
 
 Esses atributos **não viajam no JWT** (inchariam o token, que vai em todo request). Eles são lidos sob demanda:
 - **perfil próprio** do usuário autenticado → `GET /auth/me` (ver [`profile.md`](./profile.md));

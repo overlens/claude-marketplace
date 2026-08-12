@@ -115,7 +115,7 @@ const isM2M = !!payload.client_id && !payload.email; // canonical
 
 **Authorize accordingly:** users by a **role local to your app** (mapped from `sub`), services by `scope`. A service token has **no** `role` — gating an M2M endpoint on `role` fails closed and produces a confusing 403.
 
-> ⚠️ **`role` is `@deprecated` as an authorization source (RFC-0003 / ADR-8).** Per the global/local boundary (ADR-7), a user's role is **contextual to each app**, not global identity: the IDP authenticates, **your app authorizes**. The claim is still in the token (no breaking change) and the `RequireRole` template below still works, but treat it as a **transitional bridge** — new code should map `sub` → a role you own, not read `role` from the JWT. The claim will be removed in a future major version. (Global profile attributes — `username`, `phone`, `birthDate`, `avatar` — don't travel in the token either; read them via the profile endpoints, RFC-0001 / RFC-0002.)
+> ⚠️ **`role` is `@deprecated` as an authorization source (RFC-0003 / ADR-8).** Per the global/local boundary (ADR-7), a user's role is **contextual to each app**, not global identity: the IDP authenticates, **your app authorizes**. The claim is still in the token (no breaking change) and the `RequireRole` template below still works, but treat it as a **transitional bridge** — new code should map `sub` → a role you own, not read `role` from the JWT. The claim will be removed in a future major version. (Global profile attributes — `username`, `phone`, `document`, `birthDate`, `avatar` — don't travel in the token either; read them via the profile endpoints, RFC-0001 / RFC-0002.)
 
 ### Required env vars
 

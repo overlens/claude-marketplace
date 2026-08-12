@@ -4,7 +4,7 @@
 > autenticado por token M2M (`client_credentials`) e autorizado pelo scope `profile:read`.
 >
 > **Use este guia quando:** seu serviço precisa dos atributos globais de identidade
-> (`name`, `username`, `email`, `phone`, `birthDate`, `avatar`) de um usuário — que **não viajam no JWT**
+> (`name`, `username`, `email`, `phone`, `document`, `birthDate`, `avatar`) de um usuário — que **não viajam no JWT**
 > — para hidratar telas, rankings, notificações, etc.
 >
 > **Referências:** [RFC-0002](https://github.com/overlens/identity-provider/blob/main/docs/rfc/0002-endpoint-m2m-leitura-de-perfil.md) · base M2M em [`m2m.md`](./m2m.md) · perfil próprio em [`profile.md`](./profile.md)
@@ -33,7 +33,7 @@ O IDP já expõe três leituras, mas nenhuma serve consumo **server-to-server po
 1. Um **OAuth client M2M** registrado (`isPublic: false`, `allowedGrantTypes: ['client_credentials']`) — ver [`m2m.md` §2](./m2m.md).
 2. O scope **`profile:read`** na lista `allowedScopes` desse client (via `POST /admin/clients` ou `PATCH` — ver [`oauth-clients.md`](./oauth-clients.md)).
 
-> **PII:** com `profile:read` o backend recebe `email`/`phone`/`birthDate` **crus**. Isso é aceitável para um client confiável (registrado, com `client_secret`). Conceda o scope apenas a serviços que realmente precisam.
+> **PII:** com `profile:read` o backend recebe `email`/`phone`/`document`/`birthDate` **crus**. Isso é aceitável para um client confiável (registrado, com `client_secret`). Conceda o scope apenas a serviços que realmente precisam.
 
 ---
 
@@ -54,6 +54,7 @@ If-None-Match: "<etag>"                        # opcional — GET condicional
   "email": "fulana@gmail.com",
   "emailVerified": true,
   "phone": "+5511999990000",        // null se não definido
+  "document": "52998224725",        // CPF só com dígitos; null se não definido
   "birthDate": "1995-08-01",        // null se não definido (YYYY-MM-DD)
   "avatarUrl": "https://files.overlens.com.br/avatars/ckxxx...?v=1748606400", // null se sem avatar custom
   "avatarUpdatedAt": "2026-05-30T12:00:00.000Z"  // null se sem avatar custom
