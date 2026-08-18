@@ -3,7 +3,7 @@
 > **Para Claude Code:** Este guia explica como integrar o login centralizado da Overlens
 > em um sistema Next.js (App Router). Exemplos são funcionais e testados — copie e adapte.
 >
-> **Última atualização:** 2026-07-18 (contrato 1.6.0)
+> **Última atualização:** 2026-08-12 (§12, recuperação de e-mail, contrato 1.10.0)
 
 ---
 
@@ -546,3 +546,57 @@ O JWT emitido após o **primeiro registro** contém `new_user: true`. Em logins 
 - [ ] Renovação silenciosa implementada (`grant_type=refresh_token`)
 - [ ] Detecção de `new_user: true` para onboarding
 - [ ] Nenhum `client_secret` exposto no browser
+
+---
+
+## 12. Recuperação de e-mail (o usuário não lembra qual endereço usou)
+
+> Numerada depois do checklist de propósito: **não há nada para o seu sistema
+> implementar**. A tela vive no Accounts, atrás do "Esqueci meu e-mail" do
+> formulário de login, e o fluxo termina na caixa de entrada do usuário, sem
+> redirect de volta para você. A seção existe porque a rota é pública e quem
+> constrói a própria tela de login, em vez de redirecionar para o Accounts, pode
+> chamá-la direto.
+
+O usuário informa **um endereço que acha que pode ter usado**. Havendo conta
+acessível ali, o IDP manda uma mensagem para aquela caixa confirmando a conta
+(endereço, nome, data de criação, se entra por senha ou Google) e levando de
+volta ao login. Não havendo, nada é enviado. A mensagem **não** carrega token
+nem link de redefinição de senha: para isso existe o `/auth/password/forgot`.
+
+```
+POST https://idp.overlens.com.br/auth/email/forgot
+Content-Type: application/json
+
+{ "email": "pessoal@gmail.com" }
+
+→ 202 { "ok": true }   SEMPRE, com conta ou sem conta no endereço
+→ 400                  e-mail sintaticamente inválido (formato, não cadastro)
+→ 429                  rate limit por IP: 3 / 15 min
+→ 404                  feature desligada no ambiente
+```
+
+**A resposta nunca diz se a conta existe**, exatamente como o
+`POST /auth/password/forgot`. A confirmação viaja pelo canal que só o dono da
+caixa abre, então quem digita o endereço de um terceiro não aprende nada: o `202`
+que ele vê é o mesmo dos dois casos, e a mensagem foi para a caixa do terceiro.
+A decisão está registrada em
+[`ADR-0015`](https://github.com/overlens/identity-provider/blob/main/docs/adr/0015-recuperacao-de-e-mail-por-caixa-de-entrada.md). Ao
+consumir:
+
+- **Não escreva UI que finja saber o resultado.** A tela correta diz "se houver
+  conta nesse endereço, enviamos uma mensagem para lá". Qualquer heurística de
+  "achou / não achou" (tempo de resposta, corpo, header) vai falhar: os ramos são
+  indistinguíveis de propósito, inclusive no tempo, porque o envio do e-mail não
+  é aguardado.
+- **Um endereço por requisição.** Quem tem três candidatos manda três pedidos, e
+  só o que tem conta produz mensagem.
+- **A cota por destinatário (3/hora) responde `202`**, não `429`, pela mesma
+  razão: um 429 confirmaria o endereço. Só o limite por IP produz 429.
+- **O `429` é transitório.** Mostre o `Retry-After` (ver
+  [`rate-limiting.md`](../deploy/rate-limiting.md) §4).
+- **O `400` fala do formato do que foi digitado**, nunca do cadastro.
+
+Quem **perdeu o acesso à caixa antiga** não é atendido por este fluxo: ele
+confirma que a conta existe, não devolve o acesso a um endereço que a pessoa não
+abre mais. Esse caso continua no suporte humano.

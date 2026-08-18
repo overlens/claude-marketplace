@@ -38,6 +38,7 @@ A contagem é **por rota × chave** (IP, ou client no M2M). Estourar `/login` n�
 | `POST /auth/me/password` | `password-change` | 5 req | 15 min |
 | `POST /auth/password/forgot` | `password-reset` | 3 req | 15 min |
 | `POST /auth/password/reset` | `password-reset` | 10 req | 15 min |
+| `POST /auth/email/forgot` | `email-recovery` | 10 req | 15 min |
 | `GET /users/:sub` (M2M) | `m2m-profile-read` | 600 req (**por client**) | 60 s |
 | **Todas as demais rotas** (discovery, JWKS, `GET /auth/authorize`, `/auth/revoke`, `/auth/logout`, admin, health…) | `default` | 60 req | 60 s |
 
@@ -57,6 +58,24 @@ A contagem é **por rota × chave** (IP, ou client no M2M). Estourar `/login` n�
 > **Ao estourar essa cota o endpoint responde `202`, não `429`.** Um 429 nesse
 > ramo confirmaria que o e-mail existe e desfaria a não-enumeração que o resto
 > do fluxo garante (ADR-0012). Só o limite **por IP** produz 429.
+
+> ### ⚠️ `POST /auth/email/forgot` tem a MESMA segunda camada, por destinatário
+>
+> O endpoint também dispara e-mail para uma caixa que o solicitante não precisa
+> provar que é dele (ADR-0015), então corre o mesmo risco: IPs rotativos
+> inundando a caixa de uma vítima conhecida. A cota é **por destinatário**,
+> default 3 por hora (`EMAIL_RECOVERY_MAX_PER_RECIPIENT` /
+> `EMAIL_RECOVERY_RECIPIENT_WINDOW_MS`), contada no **cache** sob a chave
+> HMAC do endereço com a chave do servidor, nunca sob o endereço em claro (que transformaria o cache numa
+> lista dos endereços consultados).
+>
+> **Ao estourar essa cota o endpoint responde `202`, não `429`**, pela mesma
+> razão do fluxo de senha: um 429 confirmaria o endereço. Só o limite **por IP**
+> produz 429.
+>
+> Como a contagem vive no cache, ela herda o aviso da §1: **sem `REDIS_URL` é
+> por instância**. Afrouxar qualquer uma das duas camadas exige revisitar o
+> ADR-0015.
 
 ### Escopo por rota (detalhe de implementação)
 

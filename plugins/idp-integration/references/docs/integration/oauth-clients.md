@@ -1,6 +1,6 @@
 # Guia — Gerenciar OAuth Clients
 
-> **Última atualização:** 2026-07-18 (contrato 1.6.0)
+> **Última atualização:** 2026-08-12 (contrato 1.9.0)
 >
 > Todo sistema que autentica via IDP precisa de um **OAuth Client** registrado: web confidencial, mobile público, M2M, ou painel admin.
 
@@ -35,6 +35,8 @@ model OAuthClient {
   webhookUrl             String?            // Push de eventos de perfil (RFC-0004) — ver profile-events.md
   webhookSecret          String?            // segredo HMAC opcional (pré-filtro do webhook)
   webhookDisabledAt      DateTime?          // not null = webhook desativado pelo circuit-breaker
+  backchannelLogoutUri   String?            // Back-channel logout (ADR-0014), ver logout.md §9
+                                            // null = sem push (comportamento antigo, ≤ 15 min)
   disabledAt             DateTime?          // lifecycle: disabled (reversível via /enable)
   deletedAt              DateTime?          // lifecycle: soft-delete (não reversível pela API)
   createdAt              DateTime  @default(now())
@@ -73,6 +75,7 @@ Toda resposta da API admin (exceto a criação inicial) retorna esta forma — *
   "webhookUrl": null,                    // RFC-0004; o webhookSecret NUNCA é exposto...
   "hasWebhookSecret": false,             // ...apenas este booleano
   "webhookDisabledAt": null,             // not null = desativado pelo circuit-breaker
+  "backchannelLogoutUri": null,          // ADR-0014; null = client não recebe push de logout
   "disabledAt": null,
   "deletedAt": null,
   "createdAt": "2026-05-20T10:00:00.000Z",
@@ -122,7 +125,8 @@ Todos os endpoints sob `/admin/clients` exigem:
   "allowedScopes": ["openid", "profile", "email"],
   "allowSignup": true,
   "webhookUrl": "https://api.hodos.com.br/webhooks/idp",          // opcional — Push de eventos de perfil (RFC-0004)
-  "webhookSecret": "um-segredo-forte"                              // opcional — pré-filtro HMAC do webhook
+  "webhookSecret": "um-segredo-forte",                             // opcional — pré-filtro HMAC do webhook
+  "backchannelLogoutUri": "https://hodos.com.br/api/auth/backchannel-logout"  // opcional: logout imediato (ADR-0014)
 }
 ```
 
@@ -163,7 +167,8 @@ Todos os campos opcionais. Campos não enviados ficam inalterados.
   "isPublic": true,
   "confirmSecretDrop": true,   // OBRIGATÓRIO ao mudar isPublic false→true (limpa secret)
   "webhookUrl": "https://api.hodos.com.br/webhooks/idp",  // "" limpa; URL nova re-arma o circuit-breaker (webhookDisabledAt → null)
-  "webhookSecret": "novo-segredo"                          // "" limpa
+  "webhookSecret": "novo-segredo",                         // "" limpa
+  "backchannelLogoutUri": "https://hodos.com.br/api/auth/backchannel-logout"  // "" limpa (tira o client do fan-out de logout)
 }
 ```
 
@@ -215,6 +220,7 @@ Ações registradas: `CREATE`, `UPDATE`, `DISABLE`, `ENABLE`, `SOFT_DELETE`, `SE
 | `allowSignup` | boolean (default `true`) |
 | `webhookUrl` | opcional; string até 2048 chars; **HTTPS obrigatório** + anti-SSRF (rejeita loopback/privado/link-local/metadata). No `PATCH`, `""` limpa o webhook e definir uma URL re-arma o circuit-breaker (`webhookDisabledAt` → `null`). Ver [`profile-events.md`](./profile-events.md) |
 | `webhookSecret` | opcional; string até 256 chars (pré-filtro HMAC). No `PATCH`, `""` limpa. Nunca é retornado nas respostas — só o booleano `hasWebhookSecret` |
+| `backchannelLogoutUri` | opcional; **mesmas regras de URI do `webhookUrl`** (HTTPS obrigatório, anti-SSRF). No `PATCH`, `""` limpa e tira o client do fan-out. Endpoint que recebe o `logout_token` (contrato do receiver em [`logout.md`](./logout.md) §9). Vazio = comportamento anterior à 1.9.0: o app descobre a revogação no próximo silent refresh (≤ 15 min) |
 
 Combinações inválidas (semânticas — validadas além do shape):
 - M2M (`client_credentials`) com `isPublic=true` → `400`
@@ -362,6 +368,7 @@ Para promover admins **adicionais** via SQL, ver [`admin-area.md`](./admin-area.
 - [ ] Criado via `POST /admin/clients` por um ADMIN
 - [ ] `clientSecret` da resposta guardado em secret manager (não no código, não no log)
 - [ ] Para M2M: env do serviço consumidor populada com o secret
+- [ ] (Opcional) `backchannelLogoutUri` registrada, se o app quiser deslogar no mesmo instante em que o usuário sai em outro app do dispositivo ([`logout.md`](./logout.md) §9)
 - [ ] (Opcional) Entry adicionada em `apps/accounts/src/lib/client-display-names.ts` para nome bonito na tela de login
 
 ---

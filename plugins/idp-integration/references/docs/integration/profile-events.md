@@ -13,9 +13,9 @@
 >
 > **Referências:** [RFC-0004](https://github.com/overlens/identity-provider/blob/main/docs/rfc/0004-push-eventos-de-perfil.md) · Pull em [`m2m-profile-read.md`](./m2m-profile-read.md) · validação de JWT em [`backend.md`](./backend.md)
 >
-> **Última atualização:** 2026-07-18
+> **Última atualização:** 2026-08-14
 
-> ⚠️ **Status de rollout:** a implementação no IDP está **completa**, mas a **entrega dos eventos é controlada pelo kill-switch `PROFILE_EVENTS_ENABLED` (default: desligado)** — o outbox grava sempre, o worker só entrega com a flag ligada. **Confirme com o time do IDP se o Push está ativo no ambiente** antes de depender dele; o fallback é o Pull com TTL de 300s (ADR-0009).
+> **Disponibilidade:** a entrega roda automaticamente. Cada client entra no fan-out ao registrar um `webhookUrl` e possuir o scope `profile:read`; sem nenhum receiver elegível, os eventos permanecem pendentes no outbox até um webhook ser registrado ou rearmado. Clients sem webhook mantêm o Pull com TTL de 300s (ADR-0009).
 
 ---
 

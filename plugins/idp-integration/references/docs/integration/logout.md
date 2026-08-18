@@ -1,12 +1,12 @@
 # Guia de Integração — Logout
 
-> **Última atualização:** 2026-07-18 (contrato 1.6.0)
+> **Última atualização:** 2026-08-12 (contrato 1.9.0)
 
 ---
 
 ## 1. Resumo executivo
 
-O IDP suporta **quatro caminhos** para encerrar/revogar sessões — cada um com um escopo de revogação definido (tabela completa de escopos em §8):
+O IDP suporta **quatro caminhos** para encerrar/revogar sessões (escopo de cada um em §8) e, desde o contrato **1.9.0**, um **caminho de notificação**: o back-channel logout, pelo qual o IDP avisa o seu backend no instante em que uma sessão é revogada, em vez de você descobrir no próximo silent refresh (§9).
 
 | Caminho | Endpoint | Quem usa | O que acontece |
 |---|---|---|---|
@@ -14,6 +14,7 @@ O IDP suporta **quatro caminhos** para encerrar/revogar sessões — cada um com
 | **End-session (RP-Initiated Logout)** | `GET /auth/logout` | Consumers OAuth que querem encerrar também a **sessão SSO do IDP** — o browser navega até o IDP e é redirecionado de volta (`302`). | Revoga **por dispositivo** (cookie interno `device_id` — P26/1.6.0), com fallback per-client → global; limpa os cookies do IDP e redireciona para a `post_logout_redirect_uri` registrada. Contrato completo em §8. |
 | **Revogação OAuth (RFC 7009)** | `POST /auth/revoke` | Sistemas integrados via OAuth (Next.js BFF, mobile, qualquer client que troca `code` por JWT). | Revoga **a sessão do refresh token apresentado** no IDP; você apaga sua própria sessão local. Ver §3. |
 | **Revogação administrativa / lifecycle de conta** | `POST /admin/users/:id/block` · desativação · exclusão de conta | ADMIN (incidente) ou self-service ([`profile.md`](./profile.md) §7/§8). | Revoga **TODAS** as sessões do usuário. |
+| **Back-channel logout (OIDC)** ← notificação, não revogação | `POST {backchannelLogoutUri}` (o **IDP chama você**) | Qualquer client OAuth que queira encerrar a sessão local no mesmo instante em que o usuário sai em outro app do dispositivo. | O IDP entrega um `logout_token` assinado (RS256/JWKS) por sessão revogada, com a claim `sid`; você derruba a sessão local correspondente. **Sem endpoint registrado, nada muda:** você segue no piso de ≤ 15 min. Ver §9. |
 
 > ✅ **O IDP implementa o endpoint OAuth de revogação `POST /auth/revoke` (RFC 7009)** — ver §3.
 > ⚠️ Continua **não existindo** `grant_type=revoke` no `POST /auth/token` — essa chamada retorna `400 unsupported_grant_type`. Use o endpoint dedicado.
@@ -207,6 +208,7 @@ export function LogoutButton() {
 - [ ] Cookies de sessão **do seu domínio** apagados
 - [ ] `refresh_token` recebido do IDP descartado da sua persistência
 - [ ] (Recomendado) Redirect para `accounts.overlens.com.br/logout` para também encerrar sessão IDP
+- [ ] (Recomendado, 1.9.0) `backchannelLogoutUri` registrada + `sid` do id_token persistido, para deslogar no mesmo instante em que o usuário sai em outro app (§9)
 - [ ] **Nunca** envie `grant_type=revoke` para `/auth/token` — não existe (`400 unsupported_grant_type`); use `POST /auth/revoke`
 
 ---
@@ -218,7 +220,8 @@ export function LogoutButton() {
 | `POST /auth/token` com `grant_type=revoke` | ❌ Não implementado. Retorna `400 unsupported_grant_type`. Use `POST /auth/revoke` (§3). |
 | `GET /logout` (sem o prefixo `/auth`) | ❌ Não existe. O logout cookie-mode é sempre `POST /logout`. O GET que existe é o end-session **`GET /auth/logout`** (§8). |
 | Revogação de `access_token` (blocklist de JWT) | ❌ Não suportado. `POST /auth/revoke` com `token_type_hint=access_token` é no-op `200`; o JWT expira naturalmente (≤ 15 min). |
-| Back-channel / front-channel logout (OIDC spec) | ❌ Não implementado — a revogação server-side é imediata, mas os apps só percebem no próximo silent refresh (≤ 15 min). |
+| Back-channel logout (OIDC spec) | ✅ Implementado desde o contrato 1.9.0 (§9), para clients com `backchannelLogoutUri` registrado. Sem endpoint registrado, o comportamento é o antigo: a revogação server-side é imediata, mas você só percebe no próximo silent refresh (≤ 15 min). |
+| Front-channel logout (iframe) e Session Management (`check_session_iframe`) | ❌ Não implementados, e não estão no roadmap: dependem de cookie de terceiro, bloqueado fora de `*.overlens.com.br`. Use o back-channel (§9). |
 
 Para invalidar **todas** as sessões de um usuário em qualquer dispositivo (caso de incidente), use `POST /admin/users/:id/block` — exige role `ADMIN` e revoga todas as linhas de `refresh_sessions` do usuário.
 
@@ -243,8 +246,9 @@ Para invalidar **todas** as sessões de um usuário em qualquer dispositivo (cas
 > login/authorize e **estável** — NÃO é limpo no logout (é o anchor que mantém o
 > dispositivo reconhecível entre um logout e o login seguinte). Nenhum consumidor
 > precisa lê-lo ou enviá-lo: o browser o envia automaticamente ao `GET /auth/logout`
-> (Path=/). **Limitação:** os apps do dispositivo deslogam no próximo silent
-> refresh (≤ 15 min), não instantaneamente — não há back-channel logout.
+> (Path=/). **Propagação (1.9.0):** clients com `backchannelLogoutUri` registrado
+> recebem o push e deslogam no mesmo instante (§9); os demais continuam deslogando
+> no próximo silent refresh, em ≤ 15 min.
 
 ### Contrato completo — `GET /auth/logout` (end-session)
 
@@ -275,3 +279,184 @@ Semântica dos parâmetros:
 - **`state`** — ecoado de volta na URL de redirect quando o destino é a URI registrada.
 
 Revogação server-side: o usuário é identificado pelo `sub` do cookie `access_token` (ou do `id_token_hint`, se o cookie estiver ausente), já que o cookie opaco `refresh_token` não chega a este path. A precedência do escopo é **device → per-client → global** (tabela acima). Sem nenhum token que identifique o usuário, apenas os cookies são limpos.
+
+---
+
+## 9. Back-channel logout (o IDP avisa o seu backend)
+
+> Contrato **1.9.0** / [ADR-0014](https://github.com/overlens/identity-provider/blob/main/docs/adr/0014-back-channel-logout.md). Opcional e
+> aditivo: **sem `backchannelLogoutUri` registrado você não recebe nada e nada
+> muda** no seu app, que segue descobrindo a revogação no próximo silent refresh
+> (≤ 15 min). Não há flag global no IDP: registrar o endpoint é o que liga o
+> push para o seu client, e desregistrar é o que desliga.
+
+### 9.1 Modelo mental
+
+O `GET /auth/logout` já revoga as sessões do dispositivo **na hora**, no banco. O
+que demorava era a sua descoberta: sua sessão local continuava servindo páginas
+até o access token expirar. O back-channel fecha essa janela empurrando o aviso.
+
+```
+[1] Usuário clica "Sair" no app A (ou no Accounts)
+[2] IDP revoga as sessões daquele dispositivo (banco, imediato)
+[3] IDP → POST logout_token (um por sessão revogada) → seu backend   ◄── §9.4
+[4] Você derruba a sessão local casada pelo `sid`
+[5] Seu backend → aba viva do browser (SSE / refetch)                ◄── seu, não do IDP
+```
+
+O IDP entrega até o **seu backend**. O último salto até a aba aberta é seu, como
+no push de perfil ([`profile-events.md`](./profile-events.md) §6).
+
+### 9.2 Registrar o endpoint
+
+Peça ao admin do IDP, via [`PATCH /admin/clients/:id`](./oauth-clients.md):
+
+```jsonc
+{ "backchannelLogoutUri": "https://api.seuapp.com.br/backchannel-logout" }
+```
+
+HTTPS obrigatório, sem host loopback/privado/link-local/metadata (anti-SSRF, as
+mesmas regras do `webhookUrl`). `""` remove o endpoint e o tira do fan-out.
+
+### 9.3 Guardar o `sid` no login
+
+O id_token passou a carregar **`sid`** (identificador opaco da sessão). **Guarde-o
+junto da sua sessão local** no callback do `POST /auth/token`: é a chave que o
+`logout_token` vai usar para dizer *qual* sessão morreu.
+
+Sem persistir o `sid`, sua única reação possível ao push é derrubar todas as
+sessões daquele `sub`, o que desloga o celular do usuário quando ele sai no
+desktop. É exatamente o que o `sid` existe para evitar.
+
+### 9.4 O que chega no seu endpoint
+
+```
+POST https://api.seuapp.com.br/backchannel-logout
+Content-Type: application/x-www-form-urlencoded
+
+logout_token=eyJhbGciOiJSUzI1NiIsInR5cCI6ImxvZ291dCtqd3QiLCJraWQiOiI...
+```
+
+```jsonc
+// header
+{ "alg": "RS256", "kid": "<kid do JWKS>", "typ": "logout+jwt" }
+// payload
+{
+  "iss": "https://idp.overlens.com.br",
+  "aud": "seu-client-id",          // string, igual ao id_token
+  "sub": "cm9x...",                // identity.id (o mesmo `sub` do access token)
+  "sid": "cma7...",                // a sessão revogada; case a sua sessão local por ele
+  "jti": "cmb2...",                // estável entre retries: use para deduplicar
+  "iat": 1770000000,               // não há `exp`: a janela de frescor é sua (§9.5.7)
+  "events": { "http://schemas.openid.net/event/backchannel-logout": {} }
+}
+```
+
+> **Não há `nonce`** (proibido) e **não há `exp`**. O `exp` fica de fora porque um
+> prazo curto brigaria com o retry: uma entrega reagendada por 10 minutos chegaria
+> vencida e seria recusada justamente quando o push mais precisa completar. O
+> frescor você impõe pelo `iat` (§9.5), e o dedupe por `jti` cobre o replay.
+
+Cada sessão OAuth revogada de um client com endpoint registrado gera **um POST**,
+com o seu próprio `sid` e `jti`: um logout que derruba dois apps do dispositivo
+produz dois POSTs. A sessão SSO cookie-mode do Accounts não pertence a client
+nenhum, então não gera POST.
+
+### 9.5 Contrato do receiver (o que você implementa)
+
+1. **Verifique a assinatura** com o JWKS do IDP (`GET /.well-known/jwks.json`,
+   RS256): a **mesma** chave pública que você já usa no access token. Nenhum
+   segredo novo.
+2. Cheque `iss == https://idp.overlens.com.br` e `aud == seu client_id`.
+3. Exija a claim **`events`** com o membro
+   `http://schemas.openid.net/event/backchannel-logout`. É o que distingue um
+   `logout_token` de qualquer outro JWT assinado pelo IDP.
+4. **RECUSE o token se ele tiver `nonce`.** `nonce` só existe em id_token: um
+   token de logout com `nonce` é um id_token sendo reaproveitado como ordem de
+   logout. Exigido pela spec.
+5. **Deduplique por `jti`** (janela sugerida: 24h). A entrega é **at-least-once**
+   e o retry reenvia o **mesmo** `jti`.
+6. **Mapeie `sid` → sessão local** e derrube só ela. Sem `sid` reconhecido (login
+   anterior à 1.9.0, sessão já encerrada), trate como no-op e responda 200.
+7. **Imponha uma janela de frescor pelo `iat`** (sugestão: recuse `iat` mais velho
+   que 1 hora). O token não tem `exp`, então essa janela é sua; ela é o teto de
+   quanto tempo um `logout_token` capturado continua utilizável, e o dedupe por
+   `jti` cuida do resto.
+8. **Responda 200** com `Cache-Control: no-store`. Token inválido: `400`.
+
+> Um `400` também é reagendado pelo IDP (a fila só distingue 2xx de não-2xx) e
+> termina em dead-letter depois de `BACKCHANNEL_LOGOUT_MAX_ATTEMPTS`. Isso é
+> esperado: o dead-letter é o alerta de que a integração está quebrada.
+
+### 9.6 Exemplo (TypeScript, Express + `jose`)
+
+```ts
+import { createRemoteJWKSet, jwtVerify, type JWTPayload } from 'jose';
+
+const JWKS = createRemoteJWKSet(new URL('https://idp.overlens.com.br/.well-known/jwks.json'));
+const LOGOUT_EVENT = 'http://schemas.openid.net/event/backchannel-logout';
+
+app.post('/backchannel-logout', express.urlencoded({ extended: false }), async (req, res) => {
+  res.setHeader('Cache-Control', 'no-store');
+
+  let payload: JWTPayload;
+  try {
+    ({ payload } = await jwtVerify(String(req.body.logout_token ?? ''), JWKS, {
+      issuer: 'https://idp.overlens.com.br',
+      audience: process.env.OVERLENS_CLIENT_ID,
+      typ: 'logout+jwt',
+      maxTokenAge: '1h', // janela de frescor: o logout_token não tem exp
+    }));
+  } catch {
+    return res.status(400).end();
+  }
+
+  const events = payload.events as Record<string, unknown> | undefined;
+  if (!events?.[LOGOUT_EVENT]) return res.status(400).end();
+  if ('nonce' in payload) return res.status(400).end(); // id_token reaproveitado
+  const { jti, sid } = payload;
+  if (typeof jti !== 'string' || typeof sid !== 'string') return res.status(400).end();
+
+  if (await seenBefore(jti)) return res.status(200).end(); // dedupe (Redis, TTL 24h)
+  await markSeen(jti);
+
+  await destroyLocalSessionBySid(sid); // só a sessão daquele dispositivo
+  return res.status(200).end();
+});
+```
+
+O trabalho aqui é curto (apagar uma linha de sessão), então processar dentro do
+request é aceitável. Se o seu handler fizer mais que isso, dê o `200` antes e
+processe async, como no webhook de perfil.
+
+### 9.7 Garantias de entrega
+
+- **A primeira tentativa sai junto do logout**, fire-and-forget, então o normal é
+  o POST chegar em menos de um segundo. A fila é a rede de segurança: o que falhar
+  ali o worker repesca no próximo tick.
+- **At-least-once** com `jti` estável: o mesmo evento pode chegar mais de uma
+  vez, sempre com o mesmo `jti`. O dedupe é obrigatório.
+- **Retry com backoff exponencial** e **dead-letter** após
+  `BACKCHANNEL_LOGOUT_MAX_ATTEMPTS`. Não há replay depois do dead-letter.
+- **Sem circuit-breaker**, ao contrário do webhook de perfil: um endpoint que
+  falha não é desativado. O evento é o próprio sinal de segurança, e não há canal
+  de reposição a não ser a expiração do access token.
+- **A revogação em banco é a fonte de verdade.** Se a entrega falhar, sua sessão
+  local sobrevive até o próximo silent refresh, que falha e desloga: o piso de
+  ≤ 15 min. **Nunca** interprete "não recebi `logout_token`" como "a sessão está
+  viva".
+- **Ainda sem push:** bloqueio, desativação, exclusão de conta e reset de senha
+  revogam sessões sem notificar (ADR-0014, fora de escopo). Continue tratando
+  falha de refresh como logout.
+
+### 9.8 Checklist
+
+- [ ] `backchannelLogoutUri` HTTPS registrada no client.
+- [ ] `sid` do id_token persistido junto da sessão local, no callback.
+- [ ] Assinatura verificada via JWKS + `iss` + `aud` + claim `events`.
+- [ ] Token com `nonce` recusado.
+- [ ] Janela de frescor por `iat` (o token não tem `exp`).
+- [ ] Dedupe por `jti` (TTL 24h).
+- [ ] Sessão derrubada **por `sid`**, não por `sub`.
+- [ ] `200` + `Cache-Control: no-store`; `400` só para token inválido.
+- [ ] Falha de silent refresh continua tratada como logout (o push é aceleração).

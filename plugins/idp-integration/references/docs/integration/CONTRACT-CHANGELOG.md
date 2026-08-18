@@ -28,6 +28,226 @@ sem impacto de integração.
 
 ---
 
+## [1.11.0] (2026-08-18)
+
+**MINOR.** A recuperação de senha deixa de ser condicional: `POST
+/auth/password/forgot` e `POST /auth/password/reset` existem sempre. **Nenhuma
+claim, entrada de discovery, shape de erro, JWKS ou cookie muda.**
+
+### O que sai do contrato
+
+O `404` que as duas rotas devolviam quando `PASSWORD_RESET_ENABLED` estava
+desligado. Ele era condicional a uma env var do operador, nunca a um estado do
+pedido, e some junto com a env.
+
+```
+Antes:  404 (feature desligada — kill-switch PASSWORD_RESET_ENABLED)
+Agora:  a rota responde normalmente; 404 só se ela realmente não existir
+```
+
+Quem trata `404` como "feature indisponível" não quebra, apenas nunca mais entra
+nesse ramo. Quem usa `404` para descobrir se o IDP suporta reset de senha precisa
+parar: a resposta agora é sempre a da rota.
+
+### Por que o switch some
+
+Ele protegia uma dependência real: sem envio de e-mail funcionando de ponta a
+ponta, a pessoa pede ajuda e não recebe nada, e como a resposta é sempre `202`
+nem ela nem a tela percebem. Só que essa dependência já tem dono em
+`MAILER_PROVIDER`, que **falha o boot** ao declarar `resend` sem credencial. Uma
+flag paralela não acrescentava garantia, só um segundo lugar onde alguém precisa
+lembrar de ligar.
+
+É a mesma remoção já feita em `BACKCHANNEL_LOGOUT_ENABLED` e
+`EMAIL_RECOVERY_ENABLED`; a diferença é que estas duas rotas **estavam
+publicadas** com o switch documentado desde a 1.7.0, então a mudança ganha
+versão própria em vez de emenda.
+
+### Antes de subir
+
+Ambiente que não declarava a env tinha a feature **desligada**; ao subir esta
+versão ela passa a responder. Confirme, em cada ambiente, que `MAILER_PROVIDER`,
+`MAIL_FROM`, `RESEND_API_KEY` e `IDP_ACCOUNTS_BASE_URL` estão configurados —
+senão o fluxo responde `202` e não entrega nada, que é exatamente o estado que o
+switch existia para evitar.
+
+**`contract-version.json`:** `version`/`updatedAt` sobem para 1.11.0. Os blocos
+internos não mudam, então o `idp-contract.e2e-spec.ts` segue verde sem ajuste.
+
+---
+
+## [1.10.0] (2026-08-12)
+
+**MINOR (aditivo).** Recuperação de e-mail pela própria caixa de entrada
+(ADR-0015). Uma rota pública nova, para quem não lembra qual endereço usou no
+cadastro. **Nenhuma claim, entrada de discovery, shape de erro, JWKS ou cookie
+muda** e nenhuma integração existente precisa de ação.
+
+> Esta entrada **substitui** uma versão anterior da 1.10.0, que descrevia
+> `POST /auth/email/recover` (busca por CPF, resposta com o e-mail mascarado).
+> Aquele desenho foi descartado antes de qualquer release e a rota nunca esteve
+> ligada em nenhum ambiente, então nada foi removido de um contrato publicado e
+> a versão continua 1.10.0.
+
+### Novo: `POST /auth/email/forgot`
+
+```
+Request:  { "email": string }   ← um endereço CANDIDATO ("será que foi este?")
+Response: 202 Accepted { "ok": true }   ← SEMPRE, sem exceção
+Errors:   400 (e-mail sintaticamente inválido)
+          429 (rate limit POR IP: 10 / 15 min)
+```
+
+Havendo conta acessível no endereço informado, o IDP manda **para aquela caixa**
+uma mensagem confirmando a conta e levando de volta ao login. Não havendo, nada
+é enviado. **A resposta HTTP é a mesma nos dois casos**, e é a mensagem, não a
+resposta, que diz ao usuário que ele achou o endereço certo.
+
+### A resposta não revela se a conta existe, e é esse o desenho
+
+Mesma propriedade do `POST /auth/password/forgot`: endereço com conta,
+desconhecido, de conta bloqueada/desativada/excluída e com cota estourada
+produzem o mesmo status, o mesmo corpo e o mesmo tempo de resposta (o envio do
+e-mail não é aguardado). Um cliente **não pode** usar este endpoint para
+descobrir se um endereço existe; qualquer heurística nesse sentido vai falhar.
+
+Ao integrar:
+
+- **Não construa UI que finja saber o resultado.** A tela correta diz "se houver
+  conta nesse endereço, enviamos uma mensagem para lá", que é o que o `202`
+  significa.
+- **Um endereço por requisição.** Quem tem três candidatos manda três pedidos.
+- **A mensagem não é magic link.** Confirma a conta (endereço, nome, data de
+  criação, se entra por senha ou Google) e leva ao login; não carrega token nem
+  redefinição de senha, que continua sendo o `/auth/password/forgot`.
+- **A cota por destinatário (3/hora) também responde `202`**, não `429`. Um 429
+  ali confirmaria o endereço.
+- **O `429` é por IP e transitório.** Respeite o `Retry-After` em vez de tratar
+  como "não achei" (ver [`rate-limiting.md`](../deploy/rate-limiting.md) §4).
+- **O `400` fala do formato do endereço digitado**, nunca do cadastro.
+
+O que segue valendo: `/auth/password/forgot` continua não-enumerável, e agora as
+duas rotas de recuperação seguem exatamente a mesma regra.
+
+### Rollout
+
+Sem kill-switch: a rota existe sempre. Uma versão anterior desta entrada a
+descrevia atrás de `EMAIL_RECOVERY_ENABLED`, respondendo `404` enquanto
+desligado; a flag foi removida antes de qualquer release, e como ela nunca
+esteve ligada em nenhum ambiente, nada saiu de um contrato publicado e a versão
+continua 1.10.0. O que a flag protegia continua protegido em outro lugar: sem
+envio de e-mail configurado, o boot falha em `MAILER_PROVIDER=resend` sem
+credencial. Envs em
+[`environment-variables.md`](https://github.com/overlens/identity-provider/blob/main/docs/deploy/environment-variables.md) §3, limites em
+[`rate-limiting.md`](../deploy/rate-limiting.md) §2.
+
+**`contract-version.json`:** `version`/`updatedAt` sobem para 1.10.0. Os blocos
+internos (claims do JWT, discovery, JWKS, shapes de erro, cookies) **não mudam**,
+como na 1.8.0, então o `idp-contract.e2e-spec.ts` segue verde sem ajuste. O bump
+importa porque dois consumidores automatizados leem esse `version`: a tag da
+imagem de sandbox (`publish-idp-test-image.yml`) e a versão do plugin
+`idp-integration` (ADR-0013).
+
+---
+
+## [1.9.0] (2026-08-12)
+
+**MINOR (aditivo).** Back-channel logout OIDC (ADR-0014). Nada é removido nem
+renomeado: duas capacidades novas no discovery, uma claim nova no id_token e um
+campo novo no OAuth client. **Quem não fizer nada continua funcionando
+exatamente como hoje**, no piso de até 15 min descrito na 1.6.0.
+
+### Discovery: duas capacidades novas
+
+```jsonc
+// GET /.well-known/openid-configuration
+{
+  "backchannel_logout_supported": true,
+  "backchannel_logout_session_supported": true,
+  "claims_supported": ["sub", "email", "name", "email_verified", "sid", "iss", "aud", "iat", "exp"]
+}
+```
+
+A segunda entrada é a promessa de que o `logout_token` carrega `sid`, e é o que
+faz libs OIDC (Auth.js, oidc-client-ts) casarem o logout com **uma** sessão em
+vez de com o usuário inteiro. `claims_supported` ganha `sid`; nenhum valor foi
+retirado da lista.
+
+### id_token ganha `sid`
+
+O `sid` é o identificador opaco da sessão de refresh que originou aquele login.
+**Persista o `sid` junto da sua sessão local no callback**: é a chave que o
+`logout_token` usa depois para dizer *qual* sessão morreu. O access token **não**
+ganhou `sid`, e o `aud` do id_token continua string (não normalize, ver 1.3.0).
+
+### Novo: `POST {backchannelLogoutUri}` (aqui o IDP chama VOCÊ)
+
+```
+POST https://api.seuapp.com.br/backchannel-logout
+Content-Type: application/x-www-form-urlencoded
+
+logout_token=<jwt RS256>
+
+→ 200        processado (ou já visto antes: dedupe conta como sucesso)
+→ não-2xx    o IDP reagenda com backoff exponencial até MAX_ATTEMPTS, depois dead-letter
+```
+
+O `logout_token` é assinado com o **mesmo keypair e `kid` do JWKS** que você já
+usa para validar o access token. Header `typ: logout+jwt`; payload com `iss`,
+`aud` (= seu `client_id`), `sub`, `sid`, `iat`, `jti` e:
+
+```jsonc
+"events": { "http://schemas.openid.net/event/backchannel-logout": {} }
+```
+
+**Sem `nonce`** (proibido pela spec) e **sem `exp`**: um prazo curto brigaria com
+o retry, então a janela de frescor é imposta pelo receiver a partir do `iat`.
+
+Obrigações do receiver, todas com contrato e exemplo em
+[`logout.md`](./logout.md) §9: validar assinatura, `iss`, `aud` e a claim
+`events`; **recusar** token que traga `nonce` (é id_token reaproveitado); limitar
+a idade pelo `iat`; **deduplicar por `jti`** (a entrega é at-least-once e o retry
+repete o `jti`); derrubar a sessão local casada pelo `sid`; responder 200.
+
+### Campo novo no client: `backchannelLogoutUri`
+
+Registrado via `POST`/`PATCH /admin/clients` com as mesmas regras de URI do
+`webhookUrl` (HTTPS obrigatório, anti-SSRF, `""` limpa) e exposto na projeção
+pública. `null` (o default) significa **sem push**: o client não entra no
+fan-out e mantém o comportamento atual. Ver
+[`oauth-clients.md`](./oauth-clients.md).
+
+### Escopo do push e o que ele não muda
+
+- O push **espelha** a revogação do `GET /auth/logout`: por dispositivo, com
+  fallback per-client e global (precedência da 1.6.0). Um logout que revoga três
+  sessões gera três `logout_token`, um por `sid`.
+- **A revogação server-side continua sendo a fonte de verdade.** O push é
+  aceleração. Nunca leia "não recebi `logout_token`" como "a sessão está viva":
+  se a entrega falhar, o comportamento é o de antes desta versão.
+- **Ainda sem push:** bloqueio, desativação, exclusão de conta e reset de senha
+  revogam sessões e continuam no piso de até 15 min (ADR-0014, fora de escopo).
+
+### Rollout
+
+Sem kill-switch global: quem decide se recebe o push é você, registrando (ou
+não) o `backchannelLogoutUri` do seu client. Sem endpoint registrado nada é
+enfileirado e o logout se comporta como na 1.8.0, que é o mesmo degradado que uma
+flag global daria, só que por client. Uma versão anterior desta entrada
+descrevia um `BACKCHANNEL_LOGOUT_ENABLED` (default `false`); a flag foi removida
+antes de qualquer release e nunca esteve ligada em nenhum ambiente, então nada
+saiu de um contrato publicado e a versão continua 1.9.0. Registre seu endpoint e
+valide em staging antes de contar com o push. Env vars em
+[`environment-variables.md`](https://github.com/overlens/identity-provider/blob/main/docs/deploy/environment-variables.md) §3.
+
+**`contract-version.json`:** `version`/`updatedAt` sobem para 1.9.0 e o bloco
+`discovery` ganha as duas flags booleanas e o `sid` em `claims_supported`. O
+`idp-contract.e2e-spec.ts` compara esse bloco campo a campo com o que o
+`DiscoveryService` devolve, então o JSON e o discovery mudam sempre no mesmo
+commit.
+
+---
+
 ## [1.8.0] — 2026-08-05
 
 **MINOR (aditivo)** — CPF no perfil global (RFC-0001). Um atributo novo,
@@ -91,7 +311,6 @@ Request:  { "email": string }
 Response: 202 Accepted { "ok": true }   ← SEMPRE, sem exceção
 Errors:   400 (e-mail sintaticamente inválido)
           429 (rate limit POR IP: 3 / 15 min)
-          404 (feature desligada — kill-switch PASSWORD_RESET_ENABLED)
 ```
 
 **A resposta é deliberadamente indistinguível** entre e-mail cadastrado,
@@ -140,9 +359,9 @@ com sessão do mesmo usuário em outro dispositivo devem esperar um logout ali.
 
 ### Rollout
 
-Ambas as rotas ficam atrás de `PASSWORD_RESET_ENABLED` (default **`false`**) e
-respondem `404` enquanto desligadas — não `503`, para não anunciar a superfície
-antes de ela estar pronta. Ligar depois de validar o envio de e-mail em staging.
+Ambas as rotas ficaram atrás de `PASSWORD_RESET_ENABLED` (default **`false`**),
+respondendo `404` enquanto desligadas. **Isso valeu até a 1.11.0**, que removeu o
+switch: hoje as duas rotas existem sempre. Ver a entrada da 1.11.0 no topo.
 
 ---
 
