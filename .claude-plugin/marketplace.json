@@ -9,6 +9,11 @@
       "name": "idp-integration",
       "source": "./plugins/idp-integration",
       "description": "Integrate any app with the Overlens Identity Provider (SSO): guided onboarding, framework-specific auth skills and embedded integration docs."
+    },
+    {
+      "name": "events-integration",
+      "source": "./plugins/events-integration",
+      "description": "Integrate landing-page lead forms with Overlens Events: wires @overlens/events-sdk into the form and hands off what only the Events team can provide."
     }
   ]
 }
