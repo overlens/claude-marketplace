@@ -1,0 +1,11 @@
+{
+  "name": "events-integration",
+  "description": "Integrate landing-page lead forms with Overlens Events: wires @overlens/events-sdk into any stack (plain HTML, Next.js, Vite, Astro…), adds the honeypot and attribution, and hands off the values only the Events team can provide.",
+  "version": "1.0.0",
+  "author": {
+    "name": "Overlens"
+  },
+  "homepage": "https://github.com/overlens/events",
+  "repository": "https://github.com/overlens/events",
+  "license": "MIT"
+}
