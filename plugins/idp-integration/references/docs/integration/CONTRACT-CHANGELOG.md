@@ -28,6 +28,33 @@ sem impacto de integração.
 
 ---
 
+## [2.0.0] (2026-08-21)
+
+**MAJOR.** `POST /auth/me/password` passa a exigir `confirmPassword` no body e
+valida a confirmação no IDP, além da validação feita pelo Accounts. Clientes que
+enviavam somente `newPassword` recebem `400` até adotarem o novo campo.
+
+A nova senha deve ter no mínimo 8 caracteres e conter ao menos uma letra
+maiúscula ASCII, uma letra minúscula ASCII, um número e um caractere especial.
+`confirmPassword` deve ser idêntico a `newPassword`.
+
+```json
+{
+  "currentPassword": "atual_se_aplicavel",
+  "newPassword": "NovaSenha1!",
+  "confirmPassword": "NovaSenha1!"
+}
+```
+
+**Migração:** todos os clientes do endpoint devem coletar a confirmação e
+enviá-la em `confirmPassword`. Nenhuma claim, endpoint de discovery, chave JWKS
+ou regra de cookie muda.
+
+**`contract-version.json`:** `version`/`updatedAt` sobem para 2.0.0. Os blocos
+de JWT, discovery, JWKS, errors e cookies permanecem iguais.
+
+---
+
 ## [1.11.0] (2026-08-18)
 
 **MINOR.** A recuperação de senha deixa de ser condicional: `POST
