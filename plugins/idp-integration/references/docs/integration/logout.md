@@ -275,7 +275,7 @@ Semântica dos parâmetros:
 
 - **`client_id`** — mecanismo **primário** de resolução do client.
 - **`id_token_hint`** — alternativa aceita: o JWT é validado (assinatura RS256 + `iss`), a **expiração é ignorada** (um id_token vencido ainda serve como hint) e o client é lido do claim `aud`.
-- **`post_logout_redirect_uri`** — validada por **exact-match** contra a allowlist `postLogoutRedirectUris` do client resolvido (ver [`oauth-clients.md`](./oauth-clients.md)). URI ausente **ou não registrada** → redirect para o fallback `IDP_DEFAULT_POST_LOGOUT_URI` (produção: `https://accounts.overlens.com.br/logged-out`); a URI rejeitada **nunca é refletida** no redirect (proteção anti open-redirect).
+- **`post_logout_redirect_uri`** — validada por **exact-match** contra a allowlist `postLogoutRedirectUris` do client resolvido (ver [`oauth-clients.md`](./oauth-clients.md)). URI ausente **ou não registrada** → redirect para o fallback `IDP_DEFAULT_POST_LOGOUT_URI` (produção: `https://accounts.overlens.com.br/login`); a URI rejeitada **nunca é refletida** no redirect (proteção anti open-redirect).
 - **`state`** — ecoado de volta na URL de redirect quando o destino é a URI registrada.
 
 Revogação server-side: o usuário é identificado pelo `sub` do cookie `access_token` (ou do `id_token_hint`, se o cookie estiver ausente), já que o cookie opaco `refresh_token` não chega a este path. A precedência do escopo é **device → per-client → global** (tabela acima). Sem nenhum token que identifique o usuário, apenas os cookies são limpos.

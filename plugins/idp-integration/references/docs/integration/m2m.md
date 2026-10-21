@@ -358,3 +358,7 @@ O endpoint `POST /auth/token` está sob o throttler `auth` (**30 req/min por IP*
 ## 12. Caso de uso: ler o perfil global de um usuário
 
 Precisa dos atributos globais de identidade (`name`, `username`, `email`, `phone`, `document`, `birthDate`, `avatar`) de **qualquer** usuário por `sub`? Use o endpoint M2M **`GET /users/:sub`** (scope `profile:read`). Ver guia dedicado: [`m2m-profile-read.md`](./m2m-profile-read.md).
+
+Para cadastrar um usuário por e-mail ou reutilizar sua identidade, use **`POST /users`**
+com scope **`users:create`**. A operação não emite sessão; veja o contrato de
+[cadastro de usuário por serviço](./m2m-user-creation.md).

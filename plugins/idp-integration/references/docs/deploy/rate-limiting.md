@@ -39,6 +39,7 @@ A contagem é **por rota × chave** (IP, ou client no M2M). Estourar `/login` n�
 | `POST /auth/password/forgot` | `password-reset` | 3 req | 15 min |
 | `POST /auth/password/reset` | `password-reset` | 10 req | 15 min |
 | `POST /auth/email/forgot` | `email-recovery` | 10 req | 15 min |
+| `POST /users` (M2M) | `m2m-user-create` | 60 req (**por client**) | 60 s |
 | `GET /users/:sub` (M2M) | `m2m-profile-read` | 600 req (**por client**) | 60 s |
 | **Todas as demais rotas** (discovery, JWKS, `GET /auth/authorize`, `/auth/revoke`, `/auth/logout`, admin, health…) | `default` | 60 req | 60 s |
 

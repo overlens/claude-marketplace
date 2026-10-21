@@ -153,14 +153,16 @@ Troca a senha. Para contas **LOCAL** com senha atual, `currentPassword` é exigi
 ```json
 {
   "currentPassword": "atual_se_aplicavel",
-  "newPassword": "no minimo 8 chars"
+  "newPassword": "NovaSenha1!",
+  "confirmPassword": "NovaSenha1!"
 }
 ```
 
 | Campo | Validação |
 |---|---|
 | `currentPassword` | string opcional (obrigatória se `hasPassword=true`) |
-| `newPassword` | string ≥ 8 chars |
+| `newPassword` | string ≥ 8 chars, com ao menos uma maiúscula ASCII, uma minúscula ASCII, um número e um caractere especial (pontuação ou símbolo Unicode) |
+| `confirmPassword` | string obrigatória e idêntica a `newPassword` |
 
 ### Response 200
 
@@ -172,7 +174,7 @@ Troca a senha. Para contas **LOCAL** com senha atual, `currentPassword` é exigi
 
 | HTTP | Causa |
 |---|---|
-| `400` | `newPassword` muito curta |
+| `400` | Senha fora da política, confirmação ausente ou divergente |
 | `401` | `currentPassword` incorreta |
 | `409` | Conta sem `hasPassword` enviou `currentPassword` (ou vice-versa) |
 
