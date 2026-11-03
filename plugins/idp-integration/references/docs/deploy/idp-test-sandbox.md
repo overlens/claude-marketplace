@@ -153,7 +153,7 @@ sh -c "cd apps/idp && pnpm prisma migrate deploy && pnpm db:seed:ci && node dist
 | `IDP_AUDIENCE` | `https://api-test.overlens.com.br` (sugestão — ajustável) | Audiences aceitos; ajuste ao(s) consumidor(es) reais da sandbox (CSV para múltiplos). |
 | `IDP_COOKIE_DOMAIN` | **omitir** (host-only) | Não há SSO cross-subdomain na sandbox — cookie host-only basta. Ver caveat de cookie abaixo. |
 | `IDP_COOKIE_SECURE` | `true` | A sandbox é HTTPS (Cloudflare). |
-| `IDP_DEFAULT_POST_LOGOUT_URI` | uma URL estável qualquer (ex.: página "logged out" genérica) | Fallback do RP-logout — na sandbox, qualquer URL estável serve. |
+| `IDP_DEFAULT_POST_LOGOUT_URI` | URL da tela de login do Accounts | Fallback do RP-logout — redireciona diretamente para o login. |
 | `ROOT_USER_EMAIL` / `ROOT_USER_PASSWORD` | credenciais de dev | Usuário admin semeado. |
 | `LOG_LEVEL` | `info` | |
 

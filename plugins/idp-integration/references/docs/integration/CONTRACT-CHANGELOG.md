@@ -28,6 +28,60 @@ sem impacto de integração.
 
 ---
 
+## [2.1.1] (2026-11-03)
+
+**PATCH.** E-mail e username são identificadores **case-insensitive**. Login,
+cadastro (cookie, OAuth, Google e `POST /users`) e recuperação localizam a conta
+sem diferenciar caixa: `Rafael@Overlens.com.br` e `rafael@overlens.com.br` são a
+mesma identidade, e cadastrar a segunda variação responde `409`, como qualquer
+e-mail repetido.
+
+O IDP guarda e devolve só a forma canônica: e-mail em lowercase e sem espaços nas
+pontas, username em lowercase. Contas legadas cadastradas com maiúsculas foram
+normalizadas, então o claim `email` (JWT e id_token), `GET /auth/me` e
+`GET /users/:sub` dessas contas passam a responder o valor em lowercase.
+
+**Migração:** nenhuma para quem correlaciona usuário por `sub` (o caminho
+recomendado). Quem guarda cópia local de `email`/`username` e compara por
+igualdade exata deve comparar sem diferenciar caixa ou atualizar a cópia ao
+receber o próximo `profile-updated`. Nenhuma claim, endpoint, chave JWKS ou regra
+de cookie muda de forma.
+
+**`contract-version.json`:** `version`/`updatedAt` sobem para 2.1.1.
+
+## [2.1.0] (2026-10-21)
+
+- `POST /users` localiza ou cria uma identidade por e-mail para serviços com o scope dedicado `users:create`. Retorna `{ profile, created }`, sem tokens de sessão ou credenciais.
+- Contas criadas recebem senha aleatória com hash e link de definição de senha; a senha não é exposta. Contas existentes mantêm perfil, credenciais e estado de verificação; contas bloqueadas, desativadas ou excluídas são recusadas.
+- Clientes com apenas `profile:read` não recebem permissão de escrita. A concessão do novo scope é explícita no cadastro do cliente M2M.
+
+## [2.0.0] (2026-08-21)
+
+**MAJOR.** `POST /auth/me/password` passa a exigir `confirmPassword` no body e
+valida a confirmação no IDP, além da validação feita pelo Accounts. Clientes que
+enviavam somente `newPassword` recebem `400` até adotarem o novo campo.
+
+A nova senha deve ter no mínimo 8 caracteres e conter ao menos uma letra
+maiúscula ASCII, uma letra minúscula ASCII, um número e um caractere especial.
+`confirmPassword` deve ser idêntico a `newPassword`.
+
+```json
+{
+  "currentPassword": "atual_se_aplicavel",
+  "newPassword": "NovaSenha1!",
+  "confirmPassword": "NovaSenha1!"
+}
+```
+
+**Migração:** todos os clientes do endpoint devem coletar a confirmação e
+enviá-la em `confirmPassword`. Nenhuma claim, endpoint de discovery, chave JWKS
+ou regra de cookie muda.
+
+**`contract-version.json`:** `version`/`updatedAt` sobem para 2.0.0. Os blocos
+de JWT, discovery, JWKS, errors e cookies permanecem iguais.
+
+---
+
 ## [1.11.0] (2026-08-18)
 
 **MINOR.** A recuperação de senha deixa de ser condicional: `POST
